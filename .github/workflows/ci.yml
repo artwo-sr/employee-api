@@ -1,0 +1,76 @@
+# =============================================================================
+# CI Pipeline — Employee Microservice
+# GitHub Actions workflow
+# =============================================================================
+# Triggers : push / pull_request targeting the 'main' branch
+# Jobs     : build-and-test (compile + unit tests with H2 / test profile)
+# =============================================================================
+
+name: CI — Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Job: build-and-test
+  # ---------------------------------------------------------------------------
+  build-and-test:
+    name: Build & Test (Java 17)
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ── 1. Checkout source code ──────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Install JDK 17 (Temurin — same base as Dockerfile) ────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'          # Built-in Maven cache — faster than manual cache step
+
+      # ── 3. Cache Maven local repository (~/.m2) ───────────────────────────
+      #    Key includes pom.xml hash — cache is invalidated when dependencies change
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # ── 4. Run full test suite ────────────────────────────────────────────
+      #    'verify' runs compile → test → package → integration-test phases.
+      #    The maven-surefire-plugin activates the 'test' profile automatically
+      #    (H2 in Oracle-compatibility mode) — no Oracle instance needed in CI.
+      - name: Run tests with Maven
+        run: mvn clean verify --batch-mode --no-transfer-progress
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      # ── 5. Publish test report ────────────────────────────────────────────
+      #    Makes JUnit XML results visible in the GitHub Actions UI under
+      #    the "Tests" tab of each workflow run.
+      - name: Publish test report
+        uses: dorny/test-reporter@v1
+        if: always()             # Run even if tests fail so the report is visible
+        with:
+          name: JUnit Test Results
+          path: '**/target/surefire-reports/*.xml'
+          reporter: java-junit
+
+      # ── 6. Build Docker image (smoke check — no push) ─────────────────────
+      #    Verifies the Dockerfile is valid and the fat JAR is build-able.
+      #    Docker push would require REGISTRY_USER / REGISTRY_TOKEN secrets.
+      - name: Build Docker image (smoke check)
+        run: docker build --tag employee-microservice:ci-${{ github.sha }} .

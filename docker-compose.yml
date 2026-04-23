@@ -1,0 +1,104 @@
+# =============================================================================
+# docker-compose.yml — Employee Microservice + Oracle XE
+# =============================================================================
+# Services:
+#   oracle-db     : gvenzl/oracle-xe:slim (lightweight Oracle XE 21c)
+#   employee-api  : built from the local Dockerfile, activates 'prod' profile
+#
+# Usage:
+#   Start  : docker compose up --build -d
+#   Stop   : docker compose down
+#   Logs   : docker compose logs -f employee-api
+#   Destroy: docker compose down -v   (also removes the named volume)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Oracle Database XE (slim variant — ~1.5 GB compressed)
+  # ---------------------------------------------------------------------------
+  oracle-db:
+    image: gvenzl/oracle-xe:21-slim-faststart
+    container_name: oracle-db
+    restart: unless-stopped
+
+    environment:
+      # Master password for SYS / SYSTEM accounts
+      ORACLE_PASSWORD: ${ORACLE_SYSTEM_PASSWORD:-Oracle123!}
+      # Application-specific schema that will be created automatically
+      APP_USER:          ${DB_USERNAME:-employee_user}
+      APP_USER_PASSWORD: ${DB_PASSWORD:-Emp@ssw0rd!}
+      # Pluggable database name — used in the JDBC URL
+      ORACLE_DATABASE:   ${ORACLE_DATABASE:-EMPLOYEEDB}
+
+    ports:
+      - "1521:1521"
+
+    volumes:
+      # Named volume — persists data across container restarts
+      - oracle-data:/opt/oracle/oradata
+
+    healthcheck:
+      # gvenzl images expose a built-in ready-check script
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s     # Oracle XE needs ~60-90 s to fully initialise
+
+    networks:
+      - employee-net
+
+  # ---------------------------------------------------------------------------
+  # Employee REST API (Spring Boot)
+  # ---------------------------------------------------------------------------
+  employee-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: employee-api
+    restart: unless-stopped
+
+    # Do NOT start until Oracle reports healthy — avoids "connection refused" on boot
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+
+    environment:
+      # Activate the production Spring profile
+      SPRING_PROFILES_ACTIVE: prod
+
+      # Oracle JDBC thin URL — hostname matches the service name above
+      DB_URL:      jdbc:oracle:thin:@oracle-db:1521/${ORACLE_DATABASE:-EMPLOYEEDB}
+      DB_USERNAME: ${DB_USERNAME:-employee_user}
+      DB_PASSWORD: ${DB_PASSWORD:-Emp@ssw0rd!}
+
+      # Allow overriding the server port via .env
+      SERVER_PORT: ${SERVER_PORT:-8080}
+
+      # Security credentials (replace with Vault/Secrets Manager in production)
+      # These are read by SecurityConfig.userDetailsService()
+      # In a real deployment, swap InMemoryUserDetailsManager for DB-backed users
+      ADMIN_PASSWORD:  ${ADMIN_PASSWORD:-admin123}
+      VIEWER_PASSWORD: ${VIEWER_PASSWORD:-viewer123}
+
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+
+    volumes:
+      # Mount a host directory so rolling log files are accessible outside the container
+      - ./logs:/app/logs
+
+    networks:
+      - employee-net
+
+# =============================================================================
+# Volumes & Networks
+# =============================================================================
+volumes:
+  oracle-data:
+    driver: local
+
+networks:
+  employee-net:
+    driver: bridge

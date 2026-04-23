@@ -1,0 +1,281 @@
+# ===================================================================
+# APPLICATION.YML — Employee Microservice
+# Multi-profile configuration: dev | test | prod
+#
+# Profile activation:
+#   CLI  : --spring.profiles.active=prod
+#   Env  : SPRING_PROFILES_ACTIVE=prod
+#   Maven: -Dspring.profiles.active=prod
+# ===================================================================
+
+# -------------------------------------------------------------------
+# COMMON CONFIGURATION (shared across ALL profiles)
+# -------------------------------------------------------------------
+spring:
+  application:
+    name: employee-microservice
+
+  # Default active profile — override with env variable in production
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # ── JPA COMMON SETTINGS ─────────────────────────────────────────
+  jpa:
+    open-in-view: false           # Prevent OSIV anti-pattern
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC          # Consistent timestamp storage
+        globally_quoted_identifiers: false
+
+# ── SERVER ────────────────────────────────────────────────────────
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api/v1
+  error:
+    include-message: always       # Expose error message in JSON responses
+    include-binding-errors: always
+
+# ── ACTUATOR ──────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health, info, metrics, loggers, env
+  endpoint:
+    health:
+      show-details: always        # Full component health breakdown
+    loggers:
+      enabled: true
+  info:
+    env:
+      enabled: true               # Exposes info.* properties at /actuator/info
+    build:
+      enabled: true
+
+# ── OPENAPI / SWAGGER ─────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    use-root-path: false
+    tags-sorter: alpha
+    display-request-duration: true
+  show-actuator: false            # Keep actuator endpoints off the Swagger UI
+
+# ── APPLICATION INFO (exposed via /actuator/info) ─────────────────
+info:
+  app:
+    name: ${spring.application.name}
+    version: 1.0.0
+    description: Enterprise Employee Management REST API Microservice
+    java-version: ${java.version}
+
+# ── COMMON LOGGING ────────────────────────────────────────────────
+# Base levels apply to ALL profiles unless overridden within a profile block.
+# The RequestHeaderLoggingFilter is explicitly set to DEBUG here so that
+# incoming HTTP headers are always visible in local/dev runs.
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{40}) - %msg%n"
+    file:    "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n"
+  level:
+    root: INFO
+    # Application package — DEBUG gives visibility into service/mapper logic
+    com.enterprise: DEBUG
+    # Filter explicitly named to guarantee header logging even if a profile
+    # overrides the parent package level to INFO
+    com.enterprise.employee.filter.RequestHeaderLoggingFilter: DEBUG
+
+---
+# ===================================================================
+# PROFILE: dev
+# Database  : H2 In-Memory (Oracle compatibility mode off)
+# DDL       : create-drop (schema recreated on each restart)
+# Swagger   : enabled
+# H2 Console: enabled at /api/v1/h2-console
+# Log Level : DEBUG for application code, SQL statements visible
+# ===================================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # ── DATASOURCE ──────────────────────────────────────────────────
+  datasource:
+    url: jdbc:h2:mem:employeedb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+    hikari:
+      pool-name: EmployeeHikariPool-Dev
+      maximum-pool-size: 5
+
+  # ── JPA / HIBERNATE ─────────────────────────────────────────────
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ── H2 WEB CONSOLE ──────────────────────────────────────────────
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false   # Restrict to localhost only
+
+# ── LOGGING (dev) ─────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.enterprise: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE   # Logs bound parameter values
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+  file:
+    name: logs/employee-dev.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs/employee-dev.%d{yyyy-MM-dd}.%i.log
+      max-file-size: 10MB
+      max-history: 7
+
+---
+# ===================================================================
+# PROFILE: test
+# Database  : H2 In-Memory with MODE=Oracle (simulates Oracle syntax)
+# DDL       : create-drop (clean slate per test run)
+# Swagger   : not relevant (no web layer in slice tests)
+# Logging   : minimal — only WARNs to avoid noise during test output
+# Note      : Activated automatically by maven-surefire-plugin
+# ===================================================================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  # ── DATASOURCE ──────────────────────────────────────────────────
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=Oracle;NON_KEYWORDS=VALUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+    hikari:
+      pool-name: EmployeeHikariPool-Test
+      maximum-pool-size: 3
+
+  # ── JPA / HIBERNATE ─────────────────────────────────────────────
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # ── H2 CONSOLE (disabled in test) ───────────────────────────────
+  h2:
+    console:
+      enabled: false
+
+# ── LOGGING (test) ────────────────────────────────────────────────
+logging:
+  level:
+    root: WARN
+    com.enterprise: INFO
+
+---
+# ===================================================================
+# PROFILE: prod
+# Database  : Oracle (credentials injected via environment variables)
+# DDL       : validate (NEVER allow Hibernate to mutate the schema)
+# Swagger   : disabled (protect API specification in production)
+# Logging   : INFO/WARN only — rolling file with 30-day retention
+# Connection: HikariCP tuned for production throughput
+# ===================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  # ── DATASOURCE ──────────────────────────────────────────────────
+  datasource:
+    # Inject real values via environment variables; defaults are placeholders only
+    url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/ORCLPDB1}
+    driver-class-name: oracle.jdbc.OracleDriver
+    username: ${DB_USERNAME:employee_user}
+    password: ${DB_PASSWORD:changeme}
+    hikari:
+      pool-name: EmployeeHikariPool-Prod
+      connection-timeout: 20000       # ms — fail fast if no connection available
+      maximum-pool-size: 20           # Max simultaneous DB connections
+      minimum-idle: 5                 # Keep 5 connections warm at all times
+      idle-timeout: 300000            # 5 min — release idle connections
+      max-lifetime: 1800000           # 30 min — recycle connections periodically
+      leak-detection-threshold: 60000 # Warn on connections held >60 s
+
+  # ── JPA / HIBERNATE ─────────────────────────────────────────────
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: update                # Auto-creates/updates tables on startup; switch to 'validate' once schema is stable
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          batch_size: 50              # Batch inserts (supports batch POST endpoint)
+        order_inserts: true           # Group INSERTs for batching efficiency
+        order_updates: true           # Group UPDATEs for batching efficiency
+
+  # ── H2 CONSOLE (always disabled in prod) ────────────────────────
+  h2:
+    console:
+      enabled: false
+
+# ── SERVER (prod overrides) ───────────────────────────────────────
+server:
+  port: ${SERVER_PORT:8080}
+
+# ── ACTUATOR (prod — restrict to health and info only) ────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: when-authorized   # Require authentication to see full details
+
+# ── SPRINGDOC (enabled for local Oracle Docker development) ──────
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+# ── LOGGING (prod) ────────────────────────────────────────────────
+logging:
+  level:
+    root: WARN
+    com.enterprise: INFO
+    org.springframework.security: WARN
+  file:
+    name: logs/employee-prod.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs/employee-prod.%d{yyyy-MM-dd}.%i.log
+      max-file-size: 20MB
+      max-history: 30
+      total-size-cap: 500MB

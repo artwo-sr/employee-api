@@ -1,0 +1,214 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Employee Microservice API",
+    "description": "Postman Collection v2.1 — Employee Management REST API.\n\nBase URL variable: {{baseUrl}} = http://localhost:8080/api/v1\n\nAuthentication: HTTP Basic Auth (admin / admin123)\n\nDate format: dd-MM-yyyy (e.g. 15-06-1994)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string",
+      "description": "Base URL including context path. Change to match your environment."
+    }
+  ],
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "admin",    "type": "string" },
+      { "key": "password", "value": "admin123", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "1 — Get All Employees",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/employees",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees"]
+        },
+        "description": "Retrieves a list of all registered employees. Returns 200 OK with an array (empty if no records exist)."
+      },
+      "response": []
+    },
+    {
+      "name": "2 — Get Employee by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/employees/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1"]
+        },
+        "description": "Retrieves a single employee by numeric ID. Returns 200 OK or 404 Not Found."
+      },
+      "response": []
+    },
+    {
+      "name": "3 — Create Employees (Single)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept",       "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"firstName\":      \"Carlos\",\n    \"middleName\":     \"Alberto\",\n    \"fatherLastName\": \"García\",\n    \"motherLastName\": \"López\",\n    \"age\":            32,\n    \"sex\":            \"MALE\",\n    \"birthDate\":      \"10-03-1993\",\n    \"position\":       \"Software Engineer\",\n    \"active\":         true\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees"]
+        },
+        "description": "Creates a single employee. Note: the body is always a JSON array (even for one record) to support batch semantics. Returns 201 Created."
+      },
+      "response": []
+    },
+    {
+      "name": "3b — Create Employees (Batch)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept",       "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"firstName\":      \"Carlos\",\n    \"middleName\":     \"Alberto\",\n    \"fatherLastName\": \"García\",\n    \"motherLastName\": \"López\",\n    \"age\":            32,\n    \"sex\":            \"MALE\",\n    \"birthDate\":      \"10-03-1993\",\n    \"position\":       \"Software Engineer\",\n    \"active\":         true\n  },\n  {\n    \"firstName\":      \"María\",\n    \"fatherLastName\": \"Hernández\",\n    \"motherLastName\": \"Reyes\",\n    \"age\":            27,\n    \"sex\":            \"FEMALE\",\n    \"birthDate\":      \"22-07-1997\",\n    \"position\":       \"QA Engineer\",\n    \"active\":         true\n  },\n  {\n    \"firstName\":      \"Luis\",\n    \"fatherLastName\": \"Martínez\",\n    \"motherLastName\": \"Torres\",\n    \"age\":            45,\n    \"sex\":            \"MALE\",\n    \"birthDate\":      \"05-11-1979\",\n    \"position\":       \"Project Manager\",\n    \"active\":         true\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees"]
+        },
+        "description": "Creates multiple employees in one atomic request. All records are committed or all are rolled back. Returns 201 Created."
+      },
+      "response": []
+    },
+    {
+      "name": "4 — Update Employee (Full)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept",       "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\":      \"Carlos\",\n  \"middleName\":     \"Alberto\",\n  \"fatherLastName\": \"García\",\n  \"motherLastName\": \"López\",\n  \"age\":            33,\n  \"sex\":            \"MALE\",\n  \"birthDate\":      \"10-03-1993\",\n  \"position\":       \"Senior Software Engineer\",\n  \"active\":         true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1"]
+        },
+        "description": "Full update of all fields for the employee with the given ID. Returns 200 OK or 404 Not Found."
+      },
+      "response": []
+    },
+    {
+      "name": "4b — Update Employee (Partial)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept",       "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"position\": \"Tech Lead\",\n  \"active\":   false\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1"]
+        },
+        "description": "Partial update — only sends the fields that need to change. Fields omitted (null) retain their current value. Returns 200 OK or 404 Not Found."
+      },
+      "response": []
+    },
+    {
+      "name": "5 — Delete Employee",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/employees/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1"]
+        },
+        "description": "Permanently removes the employee with the given ID. Returns 204 No Content on success or 404 Not Found."
+      },
+      "response": []
+    },
+    {
+      "name": "6 — Search Employees by Name",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/employees/search?name=garcía",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "search"],
+          "query": [
+            {
+              "key": "name",
+              "value": "garcía",
+              "description": "Partial, case-insensitive search across firstName, fatherLastName, and motherLastName."
+            }
+          ]
+        },
+        "description": "Case-insensitive partial name search. Returns 200 OK with a list of matches (may be empty)."
+      },
+      "response": []
+    },
+    {
+      "name": "— Actuator: Health Check",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["actuator", "health"]
+        },
+        "description": "Spring Boot Actuator health endpoint. No authentication required. Returns component-level health status."
+      },
+      "response": []
+    },
+    {
+      "name": "— Swagger UI",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/swagger-ui.html",
+          "host": ["{{baseUrl}}"],
+          "path": ["swagger-ui.html"]
+        },
+        "description": "Opens the interactive Swagger UI. No authentication required."
+      },
+      "response": []
+    }
+  ]
+}
