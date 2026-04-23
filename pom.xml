@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- ================================================================ -->
+    <!-- PARENT: Spring Boot BOM manages all transitive dependency versions -->
+    <!-- ================================================================ -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.1</version>
+        <relativePath/>
+    </parent>
+
+    <!-- ================================================================ -->
+    <!-- PROJECT COORDINATES                                               -->
+    <!-- ================================================================ -->
+    <groupId>com.enterprise</groupId>
+    <artifactId>employee-microservice</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>employee-microservice</name>
+    <description>Enterprise Employee Management REST API Microservice</description>
+
+    <!-- ================================================================ -->
+    <!-- GLOBAL PROPERTIES                                                 -->
+    <!-- ================================================================ -->
+    <properties>
+        <!-- Java version -->
+        <java.version>17</java.version>
+
+        <!-- Third-party library versions (not managed by Spring Boot BOM) -->
+        <springdoc.version>2.8.3</springdoc.version>
+        <ojdbc.version>23.3.0.23.09</ojdbc.version>
+    </properties>
+
+    <!-- ================================================================ -->
+    <!-- DEPENDENCIES                                                      -->
+    <!-- ================================================================ -->
+    <dependencies>
+
+        <!-- ─── CORE SPRING BOOT ─────────────────────────────────────── -->
+
+        <!-- Spring MVC / REST support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Data JPA + Hibernate -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Jakarta Bean Validation (annotations: @NotBlank, @Size, etc.) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Spring Security (Basic Auth protection) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Actuator (health, info, metrics endpoints) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Hot reload in development (excluded from production JAR) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ─── API DOCUMENTATION ────────────────────────────────────── -->
+
+        <!--
+            SpringDoc OpenAPI 3 — generates /api-docs (JSON) and
+            /swagger-ui.html. Version 2.x is required for Spring Boot 3.x.
+        -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- ─── DATABASE DRIVERS ─────────────────────────────────────── -->
+
+        <!--
+            Oracle JDBC 11 driver — compatible with Java 17 and Oracle 19c/21c/23c.
+            Available on Maven Central since Oracle 19.3+.
+        -->
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+            <version>${ojdbc.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+            H2 In-Memory Database — used for the 'dev' and 'test' profiles.
+            Kept as runtime scope so it is available during integration tests
+            but is NOT packaged as a hard compile-time dependency.
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ─── CODE GENERATION / BOILERPLATE REDUCTION ─────────────── -->
+
+        <!--
+            Lombok — annotation processor for getters/setters/constructors/builders.
+            Marked optional so it is NOT transitively exposed to consumers.
+        -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ─── TESTING ──────────────────────────────────────────────── -->
+
+        <!--
+            Spring Boot Test starter — includes:
+              - JUnit 5 (JUnit Platform + Jupiter)
+              - Mockito
+              - AssertJ
+              - Spring Test context support
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Security test utilities (@WithMockUser, etc.) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- ================================================================ -->
+    <!-- BUILD PLUGINS                                                     -->
+    <!-- ================================================================ -->
+    <build>
+        <plugins>
+
+            <!-- Spring Boot Maven Plugin: creates executable fat JAR/WAR -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Exclude Lombok from the final artifact (compile-time only) -->
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Compiler Plugin: enforces Java 17 source and target -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <!-- Required so Lombok annotation processor runs correctly -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Surefire Plugin: runs JUnit 5 unit tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Activate the 'test' profile automatically during mvn test -->
+                    <systemPropertyVariables>
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>

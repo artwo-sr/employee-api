@@ -1,0 +1,37 @@
+# ==============================
+# 1. Archivos de Compilación (Maven)
+# ==============================
+target/
+*.class
+*.jar
+*.war
+.mvn/
+
+# ==============================
+# 2. Logs
+# ==============================
+logs/
+*.log
+
+# ==============================
+# 3. Entornos de Desarrollo (IDEs)
+# ==============================
+.vscode/
+.idea/
+*.iml
+*.iws
+.settings/
+.classpath
+.project
+
+# ==============================
+# 4. Sistema Operativo
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# 5. Secretos y Variables Locales
+# ==============================
+*.env
+.env.local
